@@ -137,8 +137,8 @@
 
         /* Linker Bereich für den Spielplan */
         #game-schedule-column {
-            flex: 1; /* Changed from 2 to 1 for more even distribution */
-            min-width: 450px; /* Adjusted min-width for less aggressive shrinking */
+            flex: 2; /* Takes 2 parts of available space, larger than side tables */
+            min-width: 500px; /* Minimum width to prevent schedule from being too narrow */
             padding: 20px;
             background-color: #f9f9f9;
             border: 1px solid #e0e0e0;
@@ -198,23 +198,10 @@
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 6px; /* Slightly reduced padding for tables */
+            padding: 8px; /* Slightly reduced padding for tables */
             text-align: left;
             font-size: 0.9em; /* Smaller font for table data */
         }
-
-        /* NEU: Regeln zur Steuerung der Spaltenbreiten in Gruppentabellen */
-        .group-table-card table th:first-child,
-        .group-table-card table td:first-child {
-            width: 35%; /* Team Name - Larger width */
-        }
-
-        .group-table-card table th:nth-child(n+2), /* Spalte 2 (Spiele) und alle folgenden */
-        .group-table-card table td:nth-child(n+2) {
-            width: 9%; /* Kleinere Breite für die Statistikspalten */
-        }
-        /* ENDE NEUE REGELN */
-
         th {
             background-color: #eaf2f8;
             color: #333;
@@ -240,14 +227,13 @@
         .match-input {
             display: flex;
             align-items: center;
-            gap: 5px; /* Reduced gap */
+            gap: 8px; /* Reduced gap */
             margin-bottom: 8px; /* Reduced margin */
             padding: 6px; /* Reduced padding */
             border: 1px solid #eee;
             border-radius: 4px;
             background-color: #fff;
             flex-wrap: wrap; /* Allow wrapping of match elements if screen is narrow */
-            font-size: 0.85em; /* Smaller font for match inputs */
         }
 
         /* NEW: Styling for team names in preliminary matches to stack vertically */
@@ -266,19 +252,19 @@
         }
 
         .match-input input[type="number"] {
-            width: 40px; /* Slightly smaller input width */
+            width: 50px; /* Slightly smaller input width */
             padding: 6px;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
         .match-input button {
-            padding: 5px 10px; /* Reduced button padding */
+            padding: 6px 12px; /* Reduced button padding */
             background-color: #007bff; /* Changed to primary blue */
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.8em; /* Smaller button font */
+            font-size: 0.9em; /* Smaller button font */
             transition: background-color 0.3s ease;
         }
         .match-input button:hover:not(:disabled) {
@@ -306,7 +292,7 @@
         .team-name {
             font-weight: bold;
             color: #555;
-            /* white-space: nowrap; */ /* Prevent team names from wrapping by default, overridden for preliminary */
+            white-space: nowrap; /* Prevent team names from wrapping by default, overridden for preliminary */
         }
 
         /* Team Logo im Spielplan und in der Tabelle */
@@ -326,7 +312,6 @@
             margin-right: 8px;
             color: #007bff;
             white-space: nowrap; /* Prevent time/table from wrapping */
-            font-size: 0.85em; /* Smaller font for time/table */
         }
 
 
@@ -556,16 +541,6 @@
                 }
             }
 
-            // Initialize or reset groupLastPlayedTime for all groups
-            const groupLetters = ['A', 'B', 'C'];
-            groupLetters.forEach(groupKey => {
-                if (!groups[groupKey]) {
-                    groups[groupKey] = { name: `Gruppe ${groupKey}`, teams: [] };
-                }
-                groups[groupKey].lastPlayedTime = null; // NEU: Initialisiere lastPlayedTime für jede Gruppe
-            });
-
-
             for (const groupKey in groups) {
                 groups[groupKey].teams.forEach(team => {
                     teamStats[team] = {
@@ -615,13 +590,13 @@
 
             const teamNameInputsDiv = document.getElementById('teamNameInputs');
             teamNameInputsDiv.innerHTML = '';
-            groups = {}; // Reset groups to ensure clean state for new configuration
+            groups = {};
 
             const groupLetters = ['A', 'B', 'C'];
 
             for (let i = 0; i < numGroups; i++) {
                 const groupKey = groupLetters[i];
-                groups[groupKey] = { name: `Gruppe ${groupKey}`, teams: [], lastPlayedTime: null }; // Initialize groupLastPlayedTime
+                groups[groupKey] = { name: `Gruppe ${groupKey}`, teams: [] };
 
                 const groupHeaderDiv = document.createElement('div');
                 groupHeaderDiv.className = 'form-group';
@@ -800,35 +775,23 @@
             ))];
             
             // Re-initialize lastPlayedTime and lastPlayedTable for all teams before scheduling
-            // Also reset groupLastPlayedTime for groups
             for (const teamName in teamStats) {
                 teamStats[teamName].lastPlayedTime = null;
                 teamStats[teamName].lastPlayedTable = null;
             }
-            for (const groupKey in groups) {
-                groups[groupKey].lastPlayedTime = null; // Reset group last played time
-            }
-
 
             // Populate lastPlayedTime and lastPlayedTable from prevSchedule
-            // Also update groupLastPlayedTime
             prevSchedule.sort((a,b) => {
-                const timeA = new Date(`2000-01-01T${a.time}:00`).getTime();
-                const timeB = new Date(`2000-01-01T${b.time}:00`).getTime();
-                if (timeA !== timeB) return timeA - timeB;
+                if (a.time !== b.time) return a.time.localeCompare(b.time);
                 return a.table - b.table;
             }).forEach(game => {
-                const gameDateTime = new Date(`2000-01-01T${game.time}:00`);
                 if (teamStats[game.match.team1] && game.match.team1 !== 'TBA') {
-                    teamStats[game.match.team1].lastPlayedTime = gameDateTime;
+                    teamStats[game.match.team1].lastPlayedTime = new Date(`2000-01-01T${game.time}:00`);
                     teamStats[game.match.team1].lastPlayedTable = game.table;
                 }
                 if (teamStats[game.match.team2] && game.match.team2 !== 'TBA') {
-                    teamStats[game.match.team2].lastPlayedTime = gameDateTime;
+                    teamStats[game.match.team2].lastPlayedTime = new Date(`2000-01-01T${game.time}:00`);
                     teamStats[game.match.team2].lastPlayedTable = game.table;
-                }
-                if (game.match.groupKey && groups[game.match.groupKey]) { // Ensure group exists
-                    groups[game.match.groupKey].lastPlayedTime = gameDateTime; // Update group last played time
                 }
             });
 
@@ -839,25 +802,11 @@
             const maxSchedulingIterations = gamesToSchedule.length * (numTables + 1) * 2;
             let iterationCount = 0;
 
-            // Store last used table for each group to avoid assigning same group to same table too quickly
-            const groupLastTableUsed = {};
-            for(const groupKey in groups) {
-                groupLastTableUsed[groupKey] = null;
-            }
-            // Populate groupLastTableUsed from previous schedule
-            prevSchedule.forEach(game => {
-                if (game.match.groupKey) {
-                    groupLastTableUsed[game.match.groupKey] = game.table;
-                }
-            });
-
-
             while (gamesToSchedule.length > 0 && iterationCount < maxSchedulingIterations) {
                 iterationCount++;
                 let gamesInThisRound = [];
                 let tablesUsedInThisRound = new Set();
                 let teamsPlayingInThisRound = new Set();
-                let groupsPlayingInThisRound = new Set();
 
                 // Sort tables by least recent usage to ensure fairness
                 let currentTablesAvailable = Array.from({ length: numTables }, (_, i) => i + 1).sort((a, b) => {
@@ -872,18 +821,8 @@
                     return lastUsageA - lastUsageB;
                 });
 
-                // Sort games to schedule by group last played time first, then by team last played time
-                // This is the crucial part for ensuring all groups get turns
-                let sortedGamesToConsider = [...gamesToSchedule].sort((a, b) => {
-                    const groupA_LastPlayed = a.groupKey && groups[a.groupKey] ? (groups[a.groupKey].lastPlayedTime ? groups[a.groupKey].lastPlayedTime.getTime() : 0) : 0;
-                    const groupB_LastPlayed = b.groupKey && groups[b.groupKey] ? (groups[b.groupKey].lastPlayedTime ? groups[b.groupKey].lastPlayedTime.getTime() : 0) : 0;
-
-                    // Prioritize groups that haven't played for the longest time
-                    if (groupA_LastPlayed !== groupB_LastPlayed) {
-                        return groupA_LastPlayed - groupB_LastPlayed;
-                    }
-
-                    // Secondary sort: individual team last played time
+                // Prioritize matches from groups that have played the least recently
+                gamesToSchedule.sort((a, b) => {
                     const teamA1LastPlayed = teamStats[a.team1] ? (teamStats[a.team1].lastPlayedTime ? teamStats[a.team1].lastPlayedTime.getTime() : 0) : 0;
                     const teamA2LastPlayed = teamStats[a.team2] ? (teamStats[a.team2].lastPlayedTime ? teamStats[a.team2].lastPlayedTime.getTime() : 0) : 0;
                     const minLastPlayedA = Math.min(teamA1LastPlayed, teamA2LastPlayed);
@@ -892,6 +831,7 @@
                     const teamB2LastPlayed = teamStats[b.team2] ? (teamStats[b.team2].lastPlayedTime ? teamStats[b.team2].lastPlayedTime.getTime() : 0) : 0;
                     const minLastPlayedB = Math.min(teamB1LastPlayed, teamB2LastPlayed);
 
+                    // Prefer matches where teams haven't played for a long time
                     return minLastPlayedA - minLastPlayedB;
                 });
 
@@ -900,122 +840,90 @@
                     const currentTable = currentTablesAvailable[i];
                     if (!currentTable || tablesUsedInThisRound.has(currentTable)) continue;
 
-                    let bestMatchForThisTable = null;
+                    let bestMatchIndex = -1;
                     let bestMatchScore = -Infinity;
-                    let bestMatchOriginalIndex = -1; // To remove from gamesToSchedule
 
-                    for (let j = 0; j < sortedGamesToConsider.length; j++) {
-                        const match = sortedGamesToConsider[j];
+                    const possibleGamesForThisSlot = gamesToSchedule.filter(match =>
+                        !teamsPlayingInThisRound.has(match.team1) && !teamsPlayingInThisRound.has(match.team2)
+                    );
+
+                    for (let j = 0; j < possibleGamesForThisSlot.length; j++) {
+                        const match = possibleGamesForThisSlot[j];
                         const team1 = match.team1;
                         const team2 = match.team2;
-                        const groupKey = match.groupKey;
 
-                        // Skip if teams are already playing in this round
-                        if (teamsPlayingInThisRound.has(team1) || teamsPlayingInThisRound.has(team2)) {
-                            continue;
-                        }
-
-                        let currentMatchScore = 0;
-
-                        // Heavily penalize TBA matches unless no other options
+                        let score = 0;
                         if (team1 === 'TBA' || team2 === 'TBA') {
-                            currentMatchScore -= 1000000;
+                            score -= 10000; // Penalize TBA matches heavily
                         }
 
                         const team1Stat = teamStats[team1];
                         const team2Stat = teamStats[team2];
-                        const groupStat = groups[groupKey];
 
                         if (team1Stat && team2Stat) {
                             const oneSlotAgo = new Date(currentRoundStartTime.getTime() - slotDuration * 60 * 1000);
 
-                            // Priority 1: Prevent teams from playing back-to-back
-                            if ((team1Stat.lastPlayedTime !== null && team1Stat.lastPlayedTime.getTime() >= oneSlotAgo.getTime()) ||
-                                (team2Stat.lastPlayedTime !== null && team2Stat.lastPlayedTime.getTime() >= oneSlotAgo.getTime())) {
-                                currentMatchScore -= 10000; // Very heavy penalty
+                            // Penalize if team played in the immediately previous slot
+                            if (team1Stat.lastPlayedTime !== null && team1Stat.lastPlayedTime.getTime() >= oneSlotAgo.getTime()) {
+                                score -= 1000;
+                            }
+                            if (team2Stat.lastPlayedTime !== null && team2Stat.lastPlayedTime.getTime() >= oneSlotAgo.getTime()) {
+                                score -= 1000;
                             }
 
-                            // Priority 2: Prioritize groups that haven't played for the longest time
-                            if (groupStat && groupStat.lastPlayedTime !== null) {
-                                currentMatchScore += groupStat.lastPlayedTime.getTime(); // Larger value for longer rest
-                            } else {
-                                currentMatchScore += currentRoundStartTime.getTime() * 2; // Huge bonus for groups that never played or are 'fresh'
+                            // Penalize if team played on the current table in the last two slots
+                            if (team1Stat.lastPlayedTable === currentTable && team1Stat.lastPlayedTime !== null && team1Stat.lastPlayedTime.getTime() >= (currentRoundStartTime.getTime() - 2 * slotDuration * 60 * 1000)) {
+                                score -= 500;
+                            }
+                            if (team2Stat.lastPlayedTable === currentTable && team2Stat.lastPlayedTime !== null && team2Stat.lastPlayedTime.getTime() >= (currentRoundStartTime.getTime() - 2 * slotDuration * 60 * 1000)) {
+                                score -= 500;
                             }
 
-                            // Priority 3: Try to get different groups on different tables
-                            if (groupKey && groupsPlayingInThisRound.has(groupKey)) {
-                                currentMatchScore -= 500; // Small penalty for same group in the same round
+                            // Prefer matches where teams haven't played for the longest time
+                            score += (team1Stat.lastPlayedTime ? team1Stat.lastPlayedTime.getTime() : 0) / (60 * 1000); // Add minutes since last play
+                            score += (team2Stat.lastPlayedTime ? team2Stat.lastPlayedTime.getTime() : 0) / (60 * 1000);
+
+                            // Prefer matches from different groups if possible
+                            if (match.groupKey && numGroups > 1) {
+                                const currentRoundGroups = new Set(gamesInThisRound.map(g => g.match.groupKey));
+                                if (currentRoundGroups.has(match.groupKey)) {
+                                    score -= 50; // Slight penalty for same group in the same round
+                                }
                             }
-                            // Priority 3.1: Try to spread out groups across tables, don't put same group on same table if avoidable
-                             if (groupLastTableUsed[groupKey] === currentTable && groupStat.lastPlayedTime !== null && groupStat.lastPlayedTime.getTime() >= oneSlotAgo.getTime()) {
-                                currentMatchScore -= 200; // Penalty if group played on this table recently
-                            }
-
-
-                            // Priority 4: Prefer matches where individual teams haven't played for the longest time
-                            currentMatchScore += (team1Stat.lastPlayedTime ? team1Stat.lastPlayedTime.getTime() : 0);
-                            currentMatchScore += (team2Stat.lastPlayedTime ? team2Stat.lastPlayedTime.getTime() : 0);
-
-                            // Tie-breaker: Keep original order for same score
-                            currentMatchScore += (sortedGamesToConsider.length - j); // Small bonus for earlier matches in the current sorted list
                         } else if (team1 !== 'TBA' || team2 !== 'TBA') {
-                            // If team stats are missing, penalize heavily
+                            // If team stats are missing (shouldn't happen with proper init), penalize
                             console.warn(`Team stats not found for non-TBA team: ${team1} or ${team2}. This might indicate a data inconsistency.`);
-                            currentMatchScore -= 500000;
+                            score -= 5000;
                         }
 
-                        if (currentMatchScore > bestMatchScore) {
-                            bestMatchScore = currentMatchScore;
-                            bestMatchForThisTable = match;
-                            bestMatchOriginalIndex = gamesToSchedule.indexOf(match); // Find index in original unscheduled list
+                        // Tie-breaker: prefer matches earlier in the initial list (stable sort)
+                        score += (possibleGamesForThisSlot.length - j);
+
+                        if (score > bestMatchScore) {
+                            bestMatchScore = score;
+                            bestMatchIndex = gamesToSchedule.indexOf(match);
                         }
                     }
 
-                    if (bestMatchForThisTable) {
+                    if (bestMatchIndex !== -1 && (bestMatchScore > -1000 || gamesToSchedule[bestMatchIndex].team1 === 'TBA' || gamesToSchedule[bestMatchIndex].team2 === 'TBA')) {
+                        const scheduledMatch = gamesToSchedule.splice(bestMatchIndex, 1)[0];
                         gamesInThisRound.push({
-                            match: bestMatchForThisTable,
+                            match: scheduledMatch,
                             time: `${currentRoundStartTime.getHours().toString().padStart(2, '0')}:${currentRoundStartTime.getMinutes().toString().padStart(2, '0')}`,
                             table: currentTable
                         });
-                        teamsPlayingInThisRound.add(bestMatchForThisTable.team1);
-                        teamsPlayingInThisRound.add(bestMatchForThisTable.team2);
+                        teamsPlayingInThisRound.add(scheduledMatch.team1);
+                        teamsPlayingInThisRound.add(scheduledMatch.team2);
                         tablesUsedInThisRound.add(currentTable);
-                        if (bestMatchForThisTable.groupKey) {
-                            groupsPlayingInThisRound.add(bestMatchForThisTable.groupKey);
-                        }
 
-                        // Update in-memory stats for the current scheduling process
-                        const gameDateTime = new Date(currentRoundStartTime);
-                        if (teamStats[bestMatchForThisTable.team1] && bestMatchForThisTable.team1 !== 'TBA') {
-                            teamStats[bestMatchForThisTable.team1].lastPlayedTime = gameDateTime;
-                            teamStats[bestMatchForThisTable.team1].lastPlayedTable = currentTable;
+                        if (teamStats[scheduledMatch.team1] && scheduledMatch.team1 !== 'TBA') {
+                            teamStats[scheduledMatch.team1].lastPlayedTime = new Date(currentRoundStartTime);
+                            teamStats[scheduledMatch.team1].lastPlayedTable = currentTable;
                         }
-                        if (teamStats[bestMatchForThisTable.team2] && bestMatchForThisTable.team2 !== 'TBA') {
-                            teamStats[bestMatchForThisTable.team2].lastPlayedTime = gameDateTime;
-                            teamStats[bestMatchForThisTable.team2].lastPlayedTable = currentTable;
+                        if (teamStats[scheduledMatch.team2] && scheduledMatch.team2 !== 'TBA') {
+                            teamStats[scheduledMatch.team2].lastPlayedTime = new Date(currentRoundStartTime);
+                            teamStats[scheduledMatch.team2].lastPlayedTable = currentTable;
                         }
-                        if (bestMatchForThisTable.groupKey && groups[bestMatchForThisTable.groupKey]) {
-                            groups[bestMatchForThisTable.groupKey].lastPlayedTime = gameDateTime;
-                            groupLastTableUsed[bestMatchForThisTable.groupKey] = currentTable; // Update last table used by group
-                        }
-                        
-                        // Remove the scheduled match from the master list of games to schedule
-                        gamesToSchedule.splice(bestMatchOriginalIndex, 1);
-                        // Re-sort gamesToConsider for the next table in this round, as gamesToSchedule has changed
-                        sortedGamesToConsider = [...gamesToSchedule].sort((a, b) => {
-                            const groupA_LastPlayed = a.groupKey && groups[a.groupKey] ? (groups[a.groupKey].lastPlayedTime ? groups[a.groupKey].lastPlayedTime.getTime() : 0) : 0;
-                            const groupB_LastPlayed = b.groupKey && groups[b.groupKey] ? (groups[b.groupKey].lastPlayedTime ? groups[b.groupKey].lastPlayedTime.getTime() : 0) : 0;
-                            if (groupA_LastPlayed !== groupB_LastPlayed) {
-                                return groupA_LastPlayed - groupB_LastPlayed;
-                            }
-                            const teamA1LastPlayed = teamStats[a.team1] ? (teamStats[a.team1].lastPlayedTime ? teamStats[a.team1].lastPlayedTime.getTime() : 0) : 0;
-                            const teamA2LastPlayed = teamStats[a.team2] ? (teamStats[a.team2].lastPlayedTime ? teamStats[a.team2].lastPlayedTime.getTime() : 0) : 0;
-                            const minLastPlayedA = Math.min(teamA1LastPlayed, teamA2LastPlayed);
-                            const teamB1LastPlayed = teamStats[b.team1] ? (teamStats[b.team1].lastPlayedTime ? teamStats[b.team1].lastPlayedTime.getTime() : 0) : 0;
-                            const teamB2LastPlayed = teamStats[b.team2] ? (teamStats[b.team2].lastPlayedTime ? teamStats[b.team2].lastPlayedTime.getTime() : 0) : 0;
-                            const minLastPlayedB = Math.min(teamB1LastPlayed, teamB2LastPlayed);
-                            return minLastPlayedA - minLastPlayedB;
-                        });
                     }
                 }
 
@@ -1023,17 +931,28 @@
                     scheduledGames.push(...gamesInThisRound);
                     currentRoundStartTime.setMinutes(currentRoundStartTime.getMinutes() + slotDuration);
                 } else {
-                    // If no games could be scheduled in this round, but there are still games left,
-                    // advance time to avoid infinite loop due to impossible scheduling constraints.
                     if (gamesToSchedule.length > 0) {
                         currentRoundStartTime.setMinutes(currentRoundStartTime.getMinutes() + slotDuration);
                     } else {
-                        break; // No more games to schedule
+                        break;
                     }
                 }
             }
 
-            // At the end, sort the entire schedule by time and table
+            // Add any remaining unscheduled games (should ideally be empty)
+            gamesToSchedule.forEach((match, index) => {
+                const isAlreadyInScheduledGames = scheduledGames.some(sg => sg.match.id === match.id);
+                if (!isAlreadyInScheduledGames) {
+                    scheduledGames.push({
+                        match: match,
+                        time: `${currentRoundStartTime.getHours().toString().padStart(2, '0')}:${currentRoundStartTime.getMinutes().toString().padStart(2, '0')}`,
+                        table: (index % numTables) + 1 // Assign a table arbitrarily if time-based assignment failed
+                    });
+                    currentRoundStartTime.setMinutes(currentRoundStartTime.getMinutes() + slotDuration);
+                }
+            });
+
+
             scheduledGames.sort((a, b) => {
                 if (a.time !== b.time) {
                     return a.time.localeCompare(b.time);
@@ -1409,8 +1328,8 @@
                 // 6. Final (F)
                 const allThirdPlaceRecorded = thirdPlaceMatchSchedule.every(s => finalRoundMatchResults['global'].some(m => m.id === s.match.id && m.score1 !== null && m.score2 !== null));
                 if (allThirdPlaceRecorded) {
-                    generateThirdPlaceAndFinalMatches(); // Ensure final is updated if only P3 was recorded
-                    renderThirdPlaceAndFinalMatches();
+                     generateThirdPlaceAndFinalMatches(); // Ensure final is updated if only P3 was recorded
+                     renderThirdPlaceAndFinalMatches();
                 } else {
                     generateThirdPlaceAndFinalMatchesTBA(); // Still show TBA if P3 isn't done
                     renderThirdPlaceAndFinalMatches();
@@ -1448,20 +1367,14 @@
         }
 
         function calculateAllStats() {
-            // Store current last played times for teams and groups before resetting
-            const tempLastPlayedTeamInfo = {};
+            const tempLastPlayedInfo = {};
             for (const teamName in teamStats) {
-                tempLastPlayedTeamInfo[teamName] = {
+                tempLastPlayedInfo[teamName] = {
                     lastPlayedTime: teamStats[teamName].lastPlayedTime,
                     lastPlayedTable: teamStats[teamName].lastPlayedTable
                 };
             }
-            const tempLastPlayedGroupInfo = {};
-            for (const groupKey in groups) {
-                tempLastPlayedGroupInfo[groupKey] = groups[groupKey].lastPlayedTime;
-            }
 
-            // Reset all stats for recalculation
             for (const teamName in teamStats) {
                 const group = teamStats[teamName].group;
                 teamStats[teamName] = {
@@ -1474,14 +1387,10 @@
                     tordifferenz: 0,
                     punkte: 0,
                     group: group,
-                    lastPlayedTime: tempLastPlayedTeamInfo[teamName].lastPlayedTime, // Restore last played time
-                    lastPlayedTable: tempLastPlayedTeamInfo[teamName].lastPlayedTable // Restore last played table
+                    lastPlayedTime: tempLastPlayedInfo[teamName].lastPlayedTime,
+                    lastPlayedTable: tempLastPlayedInfo[teamName].lastPlayedTable
                 };
             }
-            for (const groupKey in groups) {
-                groups[groupKey].lastPlayedTime = tempLastPlayedGroupInfo[groupKey]; // Restore group last played time
-            }
-
 
             for (const groupKey in groupMatchResults) {
                 groupMatchResults[groupKey].forEach(match => {
@@ -2170,7 +2079,7 @@
                 currentPlacementStartTime = getNextAvailableTime(lastSmallSemiFinalGame.time);
             } else if (quarterFinalsSchedule.length > 0) {
                 const lastQuarterFinalGame = quarterFinalsSchedule.slice(-1)[0];
-                currentPlacementStartTime = getNextAvailableTime(lastQuarterFinalsSchedule.time);
+                currentPlacementStartTime = getNextAvailableTime(lastQuarterFinalGame.time);
             } else {
                 currentPlacementStartTime = quarterFinalsStartTime;
             }
